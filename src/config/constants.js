@@ -1,0 +1,6 @@
+export const CONFIG = {
+    PORT: 3000,
+    UPDATE_INTERVAL: 5 * 60 * 1000,
+    DEFAULT_LAT: -32.789522, // COPEC Catemu
+    DEFAULT_LON: -70.958934
+};

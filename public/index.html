@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Clima y UV - Tiempo Real</title>
+  <style>
+    body { 
+      font-family: Arial, sans-serif; 
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      transition: all 0.5s;
+      position: relative;
+    }
+
+    /* Modo 1: Normal */
+    body.normal {
+      background: #0f172a;
+      color: white;
+    }
+
+    /* Modo 2: Alto Contraste */
+    body.high-contrast {
+      background: #f1f5f9;
+      color: #0f172a;
+    }
+
+    /* Modo 3: Ultra (para exteriores con sol) */
+    body.ultra {
+      background: #000000;
+      color: #ffffff;
+    }
+    body.ultra .temp { color: #fefce8; }
+    body.ultra .uv-index { color: #fde047; }
+    body.ultra #time { color: #a3e635; }
+
+    h1 { 
+      font-size: 3.2rem;
+      margin: 0 0 10px 0;
+    }
+
+    #city { 
+      font-size: 3rem;
+      margin: 5px 0 20px 0;
+      font-weight: 500;
+    }
+
+    #time { 
+      font-size: 1.5rem;
+      margin-bottom: 40px;
+    }
+
+    .temp { 
+      font-size: 8.5rem; 
+      font-weight: bold; 
+      line-height: 1;
+      margin: 20px 0;
+    }
+
+    .uv-container {
+      margin: 40px 0;
+    }
+
+    .uv-label { 
+      font-size: 1.8rem; 
+      margin-bottom: 10px;
+      letter-spacing: 2px;
+    }
+
+    .uv-index { 
+      font-size: 9rem; 
+      font-weight: bold; 
+      line-height: 1;
+    }
+
+    .maxmin {
+      font-size: 2.2rem;
+      margin-top: 30px;
+    }
+
+    /* Botones flotantes */
+    .btn-float {
+      position: fixed;
+      bottom: 40px;
+      right: 40px;
+      padding: 16px 24px;
+      background: rgba(30, 64, 175, 0.95);
+      color: white;
+      border: none;
+      border-radius: 50px;
+      font-size: 1.2rem;
+      cursor: pointer;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+      z-index: 100;
+    }
+  </style>
+</head>
+<body class="normal">
+
+  <h1>🌤️ Clima en Tiempo Real</h1>
+  <h2 id="city">Cargando ubicación...</h2>
+  <p id="time"></p>
+  
+  <div class="temp" id="temperature">--°C</div>
+  
+  <div class="uv-container">
+    <div class="uv-label">ÍNDICE UV ACTUAL</div>
+    <div class="uv-index" id="uvIndex">--</div>
+  </div>
+  
+  <div class="maxmin">
+    <strong>Máx / Mín hoy:</strong> <span id="maxMin">-- / -- °C</span>
+  </div>
+
+  <!-- Botones flotantes -->
+  <button class="btn-float" style="bottom: 130px;" onclick="cycleContrast()">🔆 Contraste</button>
+  <button class="btn-float" onclick="openModal()">📍 Cambiar Ubicación</button>
+
+  <!-- Modal (sin cambios) -->
+  <div id="modal" class="modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); align-items: center; justify-content: center; z-index: 1000;">
+    <div class="modal-content" style="background: white; color: #1e3a8a; padding: 35px; border-radius: 16px; width: 90%; max-width: 480px;">
+      <h2>Cambiar Ubicación</h2>
+      
+      <input type="text" id="lat" placeholder="Latitud (ej: 40.4168)" style="width:100%; padding:12px; margin:8px 0;">
+      <input type="text" id="lon" placeholder="Longitud (ej: -3.7038)" style="width:100%; padding:12px; margin:8px 0;">
+      <button onclick="changeLocation()" style="width:100%; padding:14px; margin:10px 0;">Usar Coordenadas</button>
+
+      <textarea id="mapsLink" rows="3" placeholder="O pega aquí enlace de Google Maps" style="width:100%; padding:12px; margin:10px 0;"></textarea>
+      <button onclick="useGoogleMapsLink()" style="width:100%; padding:14px; margin:10px 0;">Extraer de Google Maps</button>
+
+      <button onclick="useMyLocation()" style="width:100%; padding:14px; background:#64748b;">🌍 Usar mi ubicación actual</button>
+      <button onclick="closeModal()" style="width:100%; padding:14px; background:#94a3b8; margin-top:10px;">Cerrar</button>
+    </div>
+  </div>
+
+  <script>
+    const modes = ['normal', 'high-contrast', 'ultra'];
+    let currentIndex = 0;
+
+    // Cargar modo guardado
+    const savedMode = localStorage.getItem('contrastMode');
+    if (savedMode) {
+      currentIndex = modes.indexOf(savedMode);
+      if (currentIndex === -1) currentIndex = 0;
+      document.body.className = savedMode;
+    }
+
+    function cycleContrast() {
+      currentIndex = (currentIndex + 1) % modes.length;
+      const newMode = modes[currentIndex];
+      
+      document.body.className = newMode;
+      localStorage.setItem('contrastMode', newMode);
+    }
+
+    async function loadWeather(lat = null, lon = null) {
+      let url = '/weather';
+      if (lat && lon) url += `?lat=${lat}&lon=${lon}`;
+
+      try {
+        const res = await fetch(url);
+        const data = await res.json();
+
+        if (data.location && data.current) {
+          document.getElementById('city').textContent = data.location.city;
+          document.getElementById('temperature').textContent = data.current.temperature + "°C";
+          document.getElementById('uvIndex').textContent = data.current.uvIndex;
+          document.getElementById('maxMin').textContent = 
+            data.daily.maxTemp + "°C / " + data.daily.minTemp + "°C";
+          document.getElementById('time').textContent = 
+            "Actualizado: " + new Date(data.timestamp).toLocaleTimeString('es-ES');
+        }
+      } catch (error) {
+        console.error("Error:", error);
+      }
+    }
+
+    function openModal() { 
+      document.getElementById('modal').style.display = 'flex'; 
+    }
+    function closeModal() { 
+      document.getElementById('modal').style.display = 'none'; 
+    }
+
+    function changeLocation() {
+      const lat = document.getElementById('lat').value.trim();
+      const lon = document.getElementById('lon').value.trim();
+      if (lat && lon) {
+        loadWeather(lat, lon);
+        closeModal();
+      } else {
+        alert("Ingresa latitud y longitud");
+      }
+    }
+
+    function useGoogleMapsLink() {
+      const link = document.getElementById('mapsLink').value.trim();
+      if (!link) return alert("Pega un enlace de Google Maps");
+
+      const coords = extractCoordsFromGoogleMaps(link);
+      if (coords) {
+        loadWeather(coords.lat, coords.lon);
+        closeModal();
+      } else {
+        alert("No se pudieron extraer las coordenadas");
+      }
+    }
+
+    function extractCoordsFromGoogleMaps(url) {
+      let match = url.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+      if (match) return { lat: match[1], lon: match[2] };
+
+      match = url.match(/q=(-?\d+\.\d+),(-?\d+\.\d+)/);
+      if (match) return { lat: match[1], lon: match[2] };
+      return null;
+    }
+
+    function useMyLocation() {
+      loadWeather();
+      closeModal();
+    }
+
+    // Inicio
+    loadWeather();
+    setInterval(loadWeather, 5 * 60 * 1000);
+  </script>
+</body>
+</html>
