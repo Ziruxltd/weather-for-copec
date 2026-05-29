@@ -89,6 +89,25 @@ Este proyecto está preparado para desplegarse fácilmente en [Render.com](https
 - En plan gratuito, el servicio se duerme después de inactividad. Si necesitas disponibilidad 24/7, considera un plan pago.
 - La interfaz se actualiza automáticamente cada 30 segundos desde el navegador.
 
+### ⚠️ Problema común en Render (Rate Limiting de Open-Meteo)
+
+Si ves errores como:
+
+```
+❌ Open-Meteo devolvió error: Daily request limit exceeded...
+🚨 Posible rate limit o cuota agotada en Open-Meteo.
+```
+
+**Es muy probable** que sea porque estás en el plan gratuito de Render.
+
+Render comparte IPs entre muchos servicios. Open-Meteo es muy usado y a veces limita las IPs de proveedores cloud (Render, Railway, etc.).
+
+**Soluciones (de mejor a peor):**
+
+1. **Mejor opción**: Regístrate gratis y obtén una API Key en [https://open-meteo.com/en/members](https://open-meteo.com/en/members). Luego configúrala como variable de entorno `OPEN_METEO_API_KEY`.
+2. Aumenta el intervalo de actualización (`UPDATE_INTERVAL_MS=600000` = 10 minutos).
+3. Considera un plan de pago en Render o cambiar a otro proveedor.
+
 ## 🔧 Configuración
 
 El proyecto se configura principalmente mediante **variables de entorno** (recomendado para producción):
@@ -99,6 +118,7 @@ El proyecto se configura principalmente mediante **variables de entorno** (recom
 | `DEFAULT_LAT`         | Latitud por defecto                      | `-32.789522` (Catemu)|
 | `DEFAULT_LON`         | Longitud por defecto                     | `-70.958934`         |
 | `UPDATE_INTERVAL_MS`  | Intervalo de actualización (ms)          | `300000` (5 min)     |
+| `OPEN_METEO_API_KEY`  | API Key gratuita de Open-Meteo (recomendado) | — (sin key)       |
 
 > **Importante para producción**: En Render (y otros PaaS) la geolocalización por IP del servidor **no** corresponderá a Chile. Es **recomendable** definir siempre `DEFAULT_LAT` y `DEFAULT_LON` como variables de entorno.
 

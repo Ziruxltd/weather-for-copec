@@ -20,3 +20,9 @@ services:
       # Intervalo de actualización en milisegundos (opcional, por defecto 5 minutos)
       # - key: UPDATE_INTERVAL_MS
       #   value: 300000
+
+      # API Key gratuita de Open-Meteo (MUY RECOMENDADO)
+      # Evita rate limiting cuando muchas apps usan las mismas IPs de Render.
+      # Regístrate gratis aquí: https://open-meteo.com/en/members
+      - key: OPEN_METEO_API_KEY
+        sync: false

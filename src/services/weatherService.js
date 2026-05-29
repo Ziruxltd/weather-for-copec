@@ -1,8 +1,10 @@
 import fetch from 'node-fetch';
 
+// Soporte para API Key gratuita de Open-Meteo (recomendado en producción)
+const API_KEY = process.env.OPEN_METEO_API_KEY || null;
+
 export async function getWeatherData(lat, lon) {
     try {
-        // Usamos parámetros más completos y estables de Open-Meteo (2026)
         const params = new URLSearchParams({
             latitude: lat,
             longitude: lon,
@@ -10,6 +12,11 @@ export async function getWeatherData(lat, lon) {
             daily: 'temperature_2m_max,temperature_2m_min,uv_index_max',
             timezone: 'auto'
         });
+
+        // Si tenemos API Key, la agregamos (da límites mucho más altos)
+        if (API_KEY) {
+            params.append('apikey', API_KEY);
+        }
 
         const url = `https://api.open-meteo.com/v1/forecast?${params.toString()}`;
 
@@ -19,6 +26,14 @@ export async function getWeatherData(lat, lon) {
         // Open-Meteo a veces devuelve { error: true, reason: "..." } incluso con status 200
         if (data.error) {
             console.error("❌ Open-Meteo devolvió error:", data.reason || data);
+
+            // Detección clara de rate limiting / cuota agotada
+            const reason = (data.reason || '').toLowerCase();
+            if (reason.includes('limit') || reason.includes('quota') || reason.includes('exceeded') || reason.includes('too many')) {
+                console.error("🚨 Posible rate limit o cuota agotada en Open-Meteo.");
+                console.error("   → Solución recomendada: Registra una API Key gratuita en https://open-meteo.com");
+            }
+
             return null;
         }
 
