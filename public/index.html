@@ -140,39 +140,27 @@
   </div>
 
   <script>
-    const modes = ['normal', 'high-contrast', 'ultra'];
-    let currentIndex = 0;
-
-    // Cargar modo guardado
-    const savedMode = localStorage.getItem('contrastMode');
-    if (savedMode) {
-      currentIndex = modes.indexOf(savedMode);
-      if (currentIndex === -1) currentIndex = 0;
-      document.body.className = savedMode;
-    }
-
-    function cycleContrast() {
-      currentIndex = (currentIndex + 1) % modes.length;
-      const newMode = modes[currentIndex];
-      
-      document.body.className = newMode;
-      localStorage.setItem('contrastMode', newMode);
-    }
+    const isProduction = window.location.hostname !== 'localhost' && 
+                        !window.location.hostname.includes('127.0.0.1');
+    
+    const API_BASE = isProduction ? '' : 'http://localhost:3000';
 
     async function loadWeather(lat = null, lon = null) {
-      let url = '/weather';
+      let url = API_BASE + '/weather';
       if (lat && lon) url += `?lat=${lat}&lon=${lon}`;
 
       try {
         const res = await fetch(url);
+        if (!res.ok) throw new Error("Error del servidor");
+        
         const data = await res.json();
 
         if (data.location && data.current) {
-          document.getElementById('city').textContent = data.location.city;
+          document.getElementById('city').textContent = data.location.city || "Ubicación desconocida";
           document.getElementById('temperature').textContent = data.current.temperature + "°C";
           document.getElementById('uvIndex').textContent = data.current.uvIndex;
           document.getElementById('maxMin').textContent = 
-            data.daily.maxTemp + "°C / " + data.daily.minTemp + "°C";
+            `${data.daily.maxTemp}°C / ${data.daily.minTemp}°C`;
           document.getElementById('time').textContent = 
             "Actualizado: " + new Date(data.timestamp).toLocaleTimeString('es-ES');
         }
@@ -181,12 +169,8 @@
       }
     }
 
-    function openModal() { 
-      document.getElementById('modal').style.display = 'flex'; 
-    }
-    function closeModal() { 
-      document.getElementById('modal').style.display = 'none'; 
-    }
+    function openModal() { document.getElementById('modal').style.display = 'flex'; }
+    function closeModal() { document.getElementById('modal').style.display = 'none'; }
 
     function changeLocation() {
       const lat = document.getElementById('lat').value.trim();
@@ -226,7 +210,6 @@
       closeModal();
     }
 
-    // Inicio
     loadWeather();
     setInterval(loadWeather, 5 * 60 * 1000);
   </script>
