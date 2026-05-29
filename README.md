@@ -2,6 +2,13 @@
 
 Servidor web que proporciona información meteorológica actualizada en tiempo real, incluyendo temperatura, índice UV, humedad y más. Obtiene datos de Open-Meteo API y detecta automáticamente la ubicación del usuario.
 
+## 📸 Preview
+
+<div align="center">
+  <img src="public/images/home.webp" alt="Pantalla principal" width="45%">
+  <img src="public/images/settings.webp" alt="Configuración de ubicación" width="45%">
+</div>
+
 ## ✨ Características
 
 - **Detección automática de ubicación** basada en IP del cliente
