@@ -17,7 +17,7 @@ export async function getWeatherData(lat, lon) {
             `&daily=temperature_2m_max,temperature_2m_min,uv_index_max` +
             `&timezone=auto`;
 
-        console.log(`📡 Consultando API: ${url}`);
+        console.log(`📡 Consultando API meteorológica...`);
         const response = await fetch(url);
         
         if (!response.ok) {
@@ -26,12 +26,10 @@ export async function getWeatherData(lat, lon) {
         }
         
         const data = await response.json();
-        console.log("📦 Respuesta de API:", JSON.stringify(data, null, 2));
 
         // Validar estructura de respuesta
         if (!data.current || !data.daily) {
             console.error("❌ La API no devolvió la estructura esperada");
-            console.error("Respuesta recibida:", JSON.stringify(data, null, 2));
             return null;
         }
 
