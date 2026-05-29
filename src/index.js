@@ -32,23 +32,34 @@ let latestWeather = null;
 
 // Función de actualización cada 5 minutos
 async function updateWeather(lat = null, lon = null) {
-    if (!lat || !lon) {
-        const location = await getLocationFromIP();
-        if (location) {
-            lat = location.latitude;
-            lon = location.longitude;
-        } else {
-            lat = CONFIG.DEFAULT_LAT;
-            lon = CONFIG.DEFAULT_LON;
+    try {
+        if (!lat || !lon) {
+            console.log("🔍 Intentando obtener ubicación por IP...");
+            const location = await getLocationFromIP();
+            if (location) {
+                lat = location.latitude;
+                lon = location.longitude;
+                console.log(`📍 Ubicación por IP: ${lat}, ${lon}`);
+            } else {
+                console.log("⚠️ No se pudo obtener ubicación por IP, usando coordenadas por defecto");
+                lat = CONFIG.DEFAULT_LAT;
+                lon = CONFIG.DEFAULT_LON;
+            }
         }
-    }
 
-    const data = await getWeatherData(lat, lon);
-    if (data) {
-        const cityInfo = await getCityFromCoordinates(lat, lon);
-        data.location.city = cityInfo.city;
-        latestWeather = data;
-        console.log(`✅ Datos actualizados - ${cityInfo.city} (${new Date().toLocaleTimeString()})`);
+        console.log(`🌤️ Obteniendo datos meteorológicos para: ${lat}, ${lon}`);
+        const data = await getWeatherData(lat, lon);
+        
+        if (data) {
+            const cityInfo = await getCityFromCoordinates(lat, lon);
+            data.location.city = cityInfo.city;
+            latestWeather = data;
+            console.log(`✅ Datos actualizados - ${cityInfo.city} (${new Date().toLocaleTimeString()})`);
+        } else {
+            console.error("❌ No se pudieron obtener datos meteorológicos");
+        }
+    } catch (error) {
+        console.error("❌ Error en updateWeather:", error);
     }
 }
 

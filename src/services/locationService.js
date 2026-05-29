@@ -2,22 +2,36 @@ import fetch from 'node-fetch';
 
 export async function getLocationFromIP() {
     try {
-        // Mejor servicio de geolocalización por IP
-        const response = await fetch('http://ip-api.com/json/?fields=status,message,lat,lon,city,country');
+        // Usar HTTPS para evitar problemas en servidores con políticas de seguridad
+        const response = await fetch('https://ipapi.co/json/', {
+            headers: { 'User-Agent': 'Mozilla/5.0' }
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
         const data = await response.json();
 
-        if (data.status === "success") {
-            return {
-                latitude: data.lat,
-                longitude: data.lon,
-                city: data.city || "Ubicación desconocida",
-                country: data.country
-            };
-        } else {
-            throw new Error(data.message || "Error en IP-API");
+        // Validar que tenemos coordenadas válidas
+        if (data.latitude && data.longitude) {
+            const lat = parseFloat(data.latitude);
+            const lon = parseFloat(data.longitude);
+            
+            if (!isNaN(lat) && !isNaN(lon) && lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180) {
+                console.log(`✅ Ubicación obtenida: ${data.city}, ${data.country_name} (${lat}, ${lon})`);
+                return {
+                    latitude: lat,
+                    longitude: lon,
+                    city: data.city || "Ubicación desconocida",
+                    country: data.country_name || data.country
+                };
+            }
         }
+        
+        throw new Error("Coordenadas no válidas en la respuesta");
     } catch (error) {
-        console.error("Error al obtener ubicación por IP:", error);
+        console.error("❌ Error al obtener ubicación por IP:", error.message);
         return null;
     }
 }

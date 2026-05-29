@@ -2,17 +2,41 @@ import fetch from 'node-fetch';
 
 export async function getWeatherData(lat, lon) {
     try {
+        // Validar coordenadas
+        const latitude = parseFloat(lat);
+        const longitude = parseFloat(lon);
+        
+        if (isNaN(latitude) || isNaN(longitude)) {
+            console.error(`❌ Coordenadas inválidas: lat=${lat}, lon=${lon}`);
+            return null;
+        }
+        
         const url = `https://api.open-meteo.com/v1/forecast?` +
-            `latitude=${lat}&longitude=${lon}` +
+            `latitude=${latitude}&longitude=${longitude}` +
             `&current=temperature_2m,uv_index` +
             `&daily=temperature_2m_max,temperature_2m_min,uv_index_max` +
             `&timezone=auto`;
 
+        console.log(`📡 Consultando API: ${url}`);
         const response = await fetch(url);
+        
+        if (!response.ok) {
+            console.error(`❌ Error HTTP: ${response.status} ${response.statusText}`);
+            return null;
+        }
+        
         const data = await response.json();
+        console.log("📦 Respuesta de API:", JSON.stringify(data, null, 2));
+
+        // Validar estructura de respuesta
+        if (!data.current || !data.daily) {
+            console.error("❌ La API no devolvió la estructura esperada");
+            console.error("Respuesta recibida:", JSON.stringify(data, null, 2));
+            return null;
+        }
 
         return {
-            location: { city: "Cargando...", lat: parseFloat(lat), lon: parseFloat(lon) },
+            location: { city: "Cargando...", lat: latitude, lon: longitude },
             current: {
                 temperature: data.current.temperature_2m,
                 uvIndex: data.current.uv_index
@@ -25,7 +49,7 @@ export async function getWeatherData(lat, lon) {
             timestamp: new Date().toISOString()
         };
     } catch (error) {
-        console.error("Error al obtener datos:", error);
+        console.error("❌ Error al obtener datos:", error);
         return null;
     }
 }
