@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: weather-for-copec
+    env: node
+    region: frankfurt
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # Coordenadas por defecto (COPEC Catemu)
+      # Reemplaza estos valores según la estación que quieras mostrar
+      - key: DEFAULT_LAT
+        sync: false
+      - key: DEFAULT_LON
+        sync: false
+      # Intervalo de actualización en milisegundos (opcional, por defecto 5 minutos)
+      # - key: UPDATE_INTERVAL_MS
+      #   value: 300000

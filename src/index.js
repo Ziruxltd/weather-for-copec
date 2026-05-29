@@ -5,7 +5,16 @@ import { CONFIG } from './config/constants.js';
 
 const app = express();
 app.use(express.json());
-app.use(express.static('public'));   // Sirve archivos estáticos (HTML, CSS, JS)
+app.use(express.static('public'));
+
+// Health check endpoint (useful for Render and load balancers)
+app.get('/health', (req, res) => {
+    res.status(200).json({
+        status: 'ok',
+        timestamp: new Date().toISOString(),
+        hasWeatherData: !!latestWeather
+    });
+});
 
 // Ruta para la página principal (HTML)
 app.get('/', (req, res) => {
@@ -30,36 +39,49 @@ app.get('/weather', async (req, res) => {
 
 let latestWeather = null;
 
-// Función de actualización cada 5 minutos
+// Función de actualización
 async function updateWeather(lat = null, lon = null) {
-    if (!lat || !lon) {
-        const location = await getLocationFromIP();
-        if (location) {
-            lat = location.latitude;
-            lon = location.longitude;
-        } else {
-            lat = CONFIG.DEFAULT_LAT;
-            lon = CONFIG.DEFAULT_LON;
+    try {
+        if (!lat || !lon) {
+            const location = await getLocationFromIP();
+            if (location) {
+                lat = location.latitude;
+                lon = location.longitude;
+            } else {
+                lat = CONFIG.DEFAULT_LAT;
+                lon = CONFIG.DEFAULT_LON;
+            }
         }
-    }
 
-    const data = await getWeatherData(lat, lon);
-    if (data) {
-        const cityInfo = await getCityFromCoordinates(lat, lon);
-        data.location.city = cityInfo.city;
-        latestWeather = data;
-        console.log(`✅ Datos actualizados - ${cityInfo.city} (${new Date().toLocaleTimeString()})`);
+        const data = await getWeatherData(lat, lon);
+        if (data) {
+            const cityInfo = await getCityFromCoordinates(lat, lon);
+            data.location.city = cityInfo.city;
+            latestWeather = data;
+            console.log(`✅ Datos actualizados - ${cityInfo.city} (${new Date().toLocaleTimeString()})`);
+        } else {
+            console.warn('⚠️  No se pudieron obtener datos meteorológicos en esta actualización');
+        }
+    } catch (error) {
+        console.error('❌ Error durante la actualización de clima:', error.message);
     }
 }
 
 // Iniciar servidor
-app.listen(CONFIG.PORT, async () => {
-    console.log(`🚀 Servidor corriendo en http://localhost:${CONFIG.PORT}`);
-    console.log(`🌐 Abre aquí → http://localhost:${CONFIG.PORT}`);
+app.listen(CONFIG.PORT, () => {
+    const isProduction = process.env.NODE_ENV === 'production' || process.env.RENDER;
+    const host = isProduction ? '0.0.0.0' : 'localhost';
+    
+    console.log(`🚀 Servidor corriendo en puerto ${CONFIG.PORT}`);
+    if (!isProduction) {
+        console.log(`🌐 Abre aquí → http://localhost:${CONFIG.PORT}`);
+    }
 
-    // Primera carga de datos
-    await updateWeather();
+    // Primera carga de datos (en background para no retrasar el inicio)
+    updateWeather().catch(err => 
+        console.error('Error en carga inicial de datos:', err.message)
+    );
 
-    // Actualización automática cada 5 minutos
-    setInterval(updateWeather, CONFIG.UPDATE_INTERVAL);
+    // Actualización automática cada X minutos
+    setInterval(() => updateWeather().catch(() => {}), CONFIG.UPDATE_INTERVAL);
 });

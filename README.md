@@ -56,18 +56,61 @@ npm start
 
 El servidor iniciará en `http://localhost:3000`
 
+## 🚀 Despliegue en Producción (Render.com)
+
+Este proyecto está preparado para desplegarse fácilmente en [Render.com](https://render.com).
+
+### Opción 1: Despliegue con `render.yaml` (recomendado)
+
+1. Haz fork o sube el código a un repositorio de GitHub.
+2. En Render, ve a **New → Blueprint** y selecciona tu repositorio.
+3. Render detectará automáticamente el archivo `render.yaml` y creará el servicio.
+4. **Obligatorio**: Configura las variables de entorno `DEFAULT_LAT` y `DEFAULT_LON` con las coordenadas de la estación COPEC que quieras mostrar.
+
+### Opción 2: Despliegue manual (Web Service)
+
+1. En Render crea un nuevo **Web Service**.
+2. Conecta tu repositorio de GitHub.
+3. Configuración recomendada:
+   - **Environment**: `Node`
+   - **Build Command**: `npm install`
+   - **Start Command**: `npm start`
+   - **Health Check Path**: `/health`
+   - **Region**: Frankfurt (mejor latencia hacia Chile que Oregon)
+4. Agrega las siguientes variables de entorno:
+   - `NODE_ENV` = `production`
+   - `DEFAULT_LAT` = (latitud de tu estación)
+   - `DEFAULT_LON` = (longitud de tu estación)
+
+### Recomendaciones importantes para COPEC
+
+- Siempre define `DEFAULT_LAT` y `DEFAULT_LON` explícitamente.
+- El endpoint de salud está en `/health` (Render lo usa para saber si el servicio está vivo).
+- En plan gratuito, el servicio se duerme después de inactividad. Si necesitas disponibilidad 24/7, considera un plan pago.
+- La interfaz se actualiza automáticamente cada 30 segundos desde el navegador.
+
 ## 🔧 Configuración
 
-Edita [src/config/constants.js](src/config/constants.js) para personalizar:
+El proyecto se configura principalmente mediante **variables de entorno** (recomendado para producción):
 
-```javascript
-export const CONFIG = {
-    PORT: 3000,                      // Puerto del servidor
-    UPDATE_INTERVAL: 5 * 60 * 1000,  // Intervalo de actualización (5 minutos)
-    DEFAULT_LAT: -32.789522,         // Latitud por defecto (COPEC Catemu)
-    DEFAULT_LON: -70.958934          // Longitud por defecto
-};
+| Variable              | Descripción                              | Por defecto          |
+|-----------------------|------------------------------------------|----------------------|
+| `PORT`                | Puerto del servidor                      | `3000`               |
+| `DEFAULT_LAT`         | Latitud por defecto                      | `-32.789522` (Catemu)|
+| `DEFAULT_LON`         | Longitud por defecto                     | `-70.958934`         |
+| `UPDATE_INTERVAL_MS`  | Intervalo de actualización (ms)          | `300000` (5 min)     |
+
+> **Importante para producción**: En Render (y otros PaaS) la geolocalización por IP del servidor **no** corresponderá a Chile. Es **recomendable** definir siempre `DEFAULT_LAT` y `DEFAULT_LON` como variables de entorno.
+
+### Configuración local (desarrollo)
+
+Copia el archivo de ejemplo y edítalo:
+
+```bash
+cp .env.example .env
 ```
+
+Luego edita `.env` con tus valores.
 
 ## 📁 Estructura del Proyecto
 
@@ -82,6 +125,8 @@ weather-for-copec/
 │       └── weatherService.js    # Obtención de datos meteorológicos
 ├── public/
 │   └── index.html              # Interfaz web
+├── render.yaml                  # Configuración para Render.com
+├── .env.example                 # Ejemplo de variables de entorno
 ├── package.json
 └── README.md
 ```
@@ -90,6 +135,9 @@ weather-for-copec/
 
 ### `GET /`
 Página principal con la interfaz web
+
+### `GET /health`
+Health check para monitoreo y plataformas como Render. Devuelve estado 200.
 
 ### `GET /weather`
 Obtiene los datos meteorológicos actuales
